@@ -3,7 +3,32 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/src/tably.css" />
         <title>Tably</title>
+        <style>
+            .tably--active a {
+                color: red;
+                font-weight: 600;
+            }
+        </style>
     </head>
-    <body></body>
+    <body>
+        <!-- Container -->
+        <ul id="tabs">
+            <!-- Tabs -->
+            <li>
+                <a href="#tab01">Tab 1</a>
+            </li>
+            <li><a href="#tab02">Tab 2</a></li>
+            <li><a href="#tab03">Tab 3</a></li>
+        </ul>
+        <!-- Panels -->
+        <div id="tab01">Content for Tab 1</div>
+        <div id="tab02">Content for Tab 2</div>
+        <div id="tab03">Content for Tab 3</div>
+        <script src="./src/tably.js"></script>
+        <script>
+            const tabs = new Tably("#tabs");
+        </script>
+    </body>
 </html>
