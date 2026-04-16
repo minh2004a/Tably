@@ -23,11 +23,8 @@ function Tably(selector) {
 }
 
 Tably.prototype._init = function () {
-    const activeTab = this.tabs[0].closest("li");
-    activeTab.classList.add("tably--active");
+    this._activateTab(this.tabs[0]);
 
-    this.panels.forEach((panel) => (panel.hidden = true));
-    this.panels[0].hidden = false;
     this._bondTabEvents = this._handleTabClick.bind(this);
     this.tabs.forEach((tab) => {
         tab.addEventListener("click", this._bondTabEvents);
@@ -36,20 +33,58 @@ Tably.prototype._init = function () {
 
 Tably.prototype._handleTabClick = function (e) {
     e.preventDefault();
-    this.tabs.forEach((t) => t.closest("li").classList.remove("tably--active"));
-    e.currentTarget.closest("li").classList.add("tably--active");
-
-    this.panels.forEach((panel) => (panel.hidden = true));
-    const targetPanel = document.querySelector(
-        e.currentTarget.getAttribute("href"),
-    );
-    if (targetPanel) {
-        targetPanel.hidden = false;
-    }
+    this._activateTab(e.currentTarget);
 };
 
 Tably.prototype.removeEvents = function () {
     this.tabs.forEach((tab) => {
         tab.removeEventListener("click", this._bondTabEvents);
     });
+};
+
+Tably.prototype._activateTab = function (tab) {
+    this.tabs.forEach((tab) =>
+        tab.closest("li").classList.remove("tably--active"),
+    );
+    tab.closest("li").classList.add("tably--active");
+
+    this.panels.forEach((panel) => (panel.hidden = true));
+    const targetPanel = document.querySelector(tab.getAttribute("href"));
+    if (targetPanel) {
+        targetPanel.hidden = false;
+    }
+};
+
+Tably.prototype.switch = function (input) {
+    let targetTab = null;
+    if (typeof input === "string") {
+        targetTab = this.tabs.find(
+            (tab) => tab.getAttribute("href") === input,
+        );
+        if (targetTab) {
+            this._activateTab(targetTab);
+        } else {
+            console.error(`Tab with input "${input}" does not exist`);
+            return;
+        }
+    } else if (this.tabs.includes(input)) {
+        targetTab = input;
+    }
+    if(!targetTab) {
+        console.error(`Tab with input "${input}" does not exist`);
+        return;
+    }
+    this._activateTab(targetTab);
+    
+};
+
+Tably.prototype.destroy = function () {
+    this.removeEvents();
+    this.tabs.forEach((tab) => {
+        tab.closest("li").classList.remove("tably--active");
+    });
+    this.panels.forEach((panel) => (panel.hidden = false));
+    this.container = null;
+    this.tabs = null;
+    this.panels = null;
 };
