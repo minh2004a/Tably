@@ -14,7 +14,7 @@
     </head>
     <body>
         <!-- Container -->
-        <ul id="tabs">
+        <ul id="tabs1">
             <!-- Tabs -->
             <li>
                 <a href="#tab01">Tab 1</a>
@@ -26,9 +26,30 @@
         <div id="tab01">Content for Tab 1</div>
         <div id="tab02">Content for Tab 2</div>
         <div id="tab03">Content for Tab 3</div>
+
+        <ul id="tabs2">
+            <li>
+                <a href="#tabA">Tab A</a>
+            </li>
+            <li><a href="#tabB">Tab B</a></li>
+            <li><a href="#tabC">Tab C</a></li>
+        </ul>
+
+        <div id="tabA">Content for Tab A</div>
+        <div id="tabB">Content for Tab B</div>
+        <div id="tabC">Content for Tab C</div>
         <script src="./src/tably.js"></script>
         <script>
-            const tabs = new Tably("#tabs");
+            const tabs1 = new Tably("#tabs1", {
+                remember: true,
+            });
+            const tabs2 = new Tably("#tabs2", {
+                remember: true,
+                onChange: (data) => {
+                    console.log(data);
+                },
+            });
+            // tabs1.switch("#tab02");
         </script>
     </body>
 </html>
