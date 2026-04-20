@@ -9,112 +9,113 @@ function Tably(selector, options = {}) {
         console.error(`Tably: No tabs found in ${selector}`);
         return;
     }
-    this.panels = this.getPanels();
-    if (this.panels.includes(null)) return;
+    this.panels = this.tabs.map((tab) => {
+        return document.querySelector(tab.getAttribute("href"));
+    });
+    if (this.panels.includes(null)) {
+        console.error(`Tably: Panel not found`);
+        return;
+    }
     this.opt = Object.assign(
         {
             remember: false,
             onChange: null,
+            classActive: "tably--active",
         },
         options,
     );
-
-    this.paramKey = selector.replace(/[^a-zA-Z0-9]/g, "");
-
+    this._clearRelax = /[^a-zA-Z0-9]/g;
+    this._paramKey = selector.replace(this._clearRelax, "");
     this._init();
 }
 
 Tably.prototype._init = function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab =
-        this.tabs.find(
-            (tab) =>
-                urlParams.get(this.paramKey) ===
-                tab.getAttribute("href").replace(/[^a-zA-Z0-9]/g, ""),
-        ) || this.tabs[0];
-    this._activateTab(tab, false);
-    this._boundHandleClickTab = this._handleClickTab.bind(this);
-    this.tabs.forEach((tab) => {
-        tab.addEventListener("click", this._boundHandleClickTab);
-    });
+    const params = new URLSearchParams(window.location.search);
+    const tabSearch = params.get(this._paramKey);
+    const activeToTab =
+        (this.opt.remember && tabSearch) ||
+        this.tabs[0].getAttribute("href").replace(this._clearRelax, "");
+    const tab = this.tabs.find(
+        (tab) =>
+            tab.getAttribute("href").replace(this._clearRelax, "") ===
+            activeToTab,
+    );
     this.currentTab = tab;
-};
-
-Tably.prototype.getPanels = function () {
-    return this.tabs.map((tab) => {
-        const panel = document.querySelector(tab.getAttribute("href"));
-        if (!panel) {
-            console.error(
-                `Tably: Panel ${tab.getAttribute("href")} does not exist`,
-            );
-        }
-        return panel;
+    this._activateTab(tab || this.tabs[0], false, false);
+    this._boundActivateTab = this._handleTabClick.bind(this);
+    this.tabs.forEach((tab) => {
+        tab.addEventListener("click", this._boundActivateTab);
     });
 };
 
-Tably.prototype._handleClickTab = function (e) {
+Tably.prototype._handleTabClick = function (e) {
     e.preventDefault();
     this._tryActivateTab(e.currentTarget);
 };
-
-Tably.prototype._tryActivateTab = function (tab, isClick = true) {
-    if (tab !== this.currentTab) {
-        this.currentTab = tab;
-        this._activateTab(tab, isClick);
-    }
-};
-
-Tably.prototype._activateTab = function (tab, isClick = true) {
-    this.tabs.forEach((t) => {
-        t.closest("li").classList.remove("tably--active");
-    });
-    tab.closest("li").classList.add("tably--active");
-
+// hàm này sẽ xử lý việc active tab
+Tably.prototype._activateTab = function (
+    tab,
+    isClick = true,
+    updateUrl = true,
+) {
+    this.tabs.forEach((t) =>
+        t.closest("li").classList.remove(this.opt.classActive),
+    );
+    tab.closest("li").classList.add(this.opt.classActive);
     this.panels.forEach((panel) => (panel.hidden = true));
-    const panel = this.panels[this.tabs.indexOf(tab)];
-    panel.hidden = false;
-
-    if (isClick && typeof this.opt.onChange === "function") {
-        this.opt.onChange({ tab, panel });
-    }
-
-    if (this.opt.remember) {
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set(
-            this.paramKey,
-            tab.getAttribute("href").replace(/[^a-zA-Z0-9]/g, ""),
+    const targetPanel = document.querySelector(tab.getAttribute("href"));
+    if (targetPanel) targetPanel.hidden = false;
+    if (updateUrl) {
+        const params = new URLSearchParams(window.location.search);
+        params.set(
+            this._paramKey,
+            tab.getAttribute("href").replace(this._clearRelax, ""),
         );
-        history.replaceState(null, null, `?${urlParams}`);
+        history.replaceState(null, null, `?${params}`);
+    }
+    if (this.opt.onChange && isClick) {
+        this.opt.onChange({
+            tab,
+            panel: targetPanel,
+        });
     }
 };
 
 Tably.prototype.switch = function (input) {
-    let tab;
+    if (!this.tabs) return;
+    let targetTab;
     if (typeof input === "string") {
-        tab = this.tabs.find((tab) => tab.getAttribute("href") === input);
+        targetTab = this.tabs.find((tab) => tab.getAttribute("href") === input);
     } else if (this.tabs.includes(input)) {
-        tab = input;
+        targetTab = input;
     }
-    if (!tab) {
-        console.error(`Tably: Tab ${input} not found`);
+
+    if (!targetTab) {
+        console.error(`Tably: No tab found for ${input}`);
         return;
     }
-    this._tryActivateTab(tab, false);
+    this._tryActivateTab(targetTab);
+};
+// kiểm tra tab có bị trùng với tab hiện tại không
+Tably.prototype._tryActivateTab = function (targetTab) {
+    if (targetTab !== this.currentTab) {
+        this.currentTab = targetTab;
+        this._activateTab(targetTab);
+    }
 };
 
 Tably.prototype.destroy = function () {
+    if (!this.tabs) return;
     this.tabs.forEach((tab) => {
-        tab.removeEventListener("click", this._boundHandleClickTab);
+        tab.removeEventListener("click", this._boundActivateTab);
     });
-
-    this.tabs.forEach((tab) => {
-        tab.closest("li").classList.remove("tably--active");
-    });
-
+    this.tabs.forEach((t) =>
+        t.closest("li").classList.remove(this.opt.classActive),
+    );
     this.panels.forEach((panel) => (panel.hidden = false));
+    this.container = null;
     this.tabs = null;
     this.panels = null;
-    this.container = null;
-    this._boundHandleClickTab = null;
+    this._boundActivateTab = null;
     this.currentTab = null;
 };
